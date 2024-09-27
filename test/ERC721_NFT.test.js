@@ -7,12 +7,6 @@
  * 随着区块链技术的不断发展，ERC721代币的潜在应用场景预计将进一步扩大，从而增加其价值和重要性。
  * /
 
-/** 
- * 本测试旨在验证 BaseERC721 智能合约的各项基础功能是否按预期工作。
- * 包括但不限于合约的部署、铸造 (Mint)、转账 (Transfer) 以及元数据 (Metadata) 查询等功能。
- * 同时，测试还将确保合约在遇到非法操作时能够正确地回滚事务并抛出相应的错误信息。
- */
-
 /**
  * 测试环境
  * 开发工具: Hardhat
@@ -30,25 +24,53 @@
  */
 
 /** 
- * 测试用例
- * 验证IERC721Metadata接口
- * - 测试 IERC721Metadata 接口的 name 和 symbol 函数是否返回预期的结果。
- * - 测试 IERC721Metadata 接口的 tokenURI 函数是否正确处理了不同的 tokenId 和 baseURI。
- * - 测试 IERC721Metadata 接口的 tokenURI 函数是否正确处理了不存在的 tokenId。
+ * 测试用例: 
  * 
- * - 测试 IERC721Receiver 接口的 onERC721Received 函数是否正确处理了不同的参数。
- * - 测试 IERC721Receiver 接口的 onERC721Received 函数是否正确处理了无效的调用。
- * - 测试 IERC721Receiver 接口的 onERC721Received 函数是否正确处理了无效的参数。
+ * IERC721Metadata接口
+ * - 验证合约的name函数返回值是否与预期的name常量相等
+ * - 验证合约的symbol函数返回值是否与预期的symbol常量相等
+ * - tokenURI函数
+ * - - 验证当查询不存在的代币ID的URI时，合约应该抛出一个带有特定错误消息的异常
+ * - - 验证当tokenId存在时，tokenURI函数应该返回预期的baseURI
  * 
+ * IERC721 接口
+ * - balanceOf 函数
+ * - - 检查 balanceOf 函数在 mint 之前是否返回 0
+ * - ownerOf 函数
+ * - - 检查 ownerOf 函数在 mint 之后是否返回正确的持有者地址
+ * - approve 授权函数
+ * - - 合约的所有者检查能否成功批准代币
+ * - - 已获批准的账户是否能够成功批准代币
+ * - - 将代币批准给当前所有者是否会回滚并抛出错误
+ * - - 非所有者和非批准账户的代币批准是否会回滚并抛出错误
+ * - getApproved 查询批准函数
+ * - - 函数返回的地址与批准的地址一致
+ * - - 查询不存在的代币的批准信息应该失败
+ * - setApprovalForAll 批量授权函数
+ * - - 函数能否正确设置批准状态为 true 或 false
+ * - - 函数在尝试批准给所有者自己时是否会失败
+ * - transferFrom 转账函数, 主要看账户及授权相关
+ * - - 所有者账户的转账是否成功，并且余额是否发生变化
+ * - - 经过授权的账户的转账是否成功，并且余额是否发生变化
+ * - - 经过批量授权的账户的转账是否成功，并且余额是否发生变化
+ * - - 非所有者且未被授权的账户尝试转账时是否会回滚，并抛出特定的错误信息
+ * - - 转账不存在的代币时是否会回滚，并抛出特定的错误信息
+ * - - 转账到零地址时是否会回滚，并抛出特定的错误信息
+ * - - 从非所有者账户转账时是否会回滚，并抛出特定的错误信息
+ * - - 当代币被转移时，旧的批准是否会被撤销
+ * - safeTransferFrom安全转账函数测试, 和transferFrom大致一致, 多了检查地址是否支持ERC721标准
+ * - - 所有者应该成功转移代币并且余额应该改变
+ * - - 被批准的账户应该成功转移代币并且余额应该改变
+ * - - 非所有者且未被批准的账户应该转移失败并回滚
+ * - - 转移到不支持 ERC721Receiver 的合约应该回滚
+ * - - 转移到支持 ERC721Receiver 的合约应该成功
  * 
- * 
+ * mint铸币函数测试
+ * - 成功应该更新余额
+ * - 到零地址应该回滚
+ * - 重复的 tokenId 应该回滚
 */
  
-
-
-
-
-
 
 // 引入 Chai 断言库，用于编写更清晰的测试用例
 const { expect } = require('chai');
@@ -122,21 +144,21 @@ describe("BaseERC721", async () => {
         await init();
     })
 
-    // 描述一个测试套件，用于验证IERC721Metadata接口的行为
+    // 验证IERC721Metadata接口的行为
     describe("IERC721Metadata", async () => {
-        // 测试用例，验证合约的name函数返回值是否与预期的name常量相等
+        // 验证合约的name函数返回值是否与预期的name常量相等
         it("name", async () => {
             expect(await contract.name()).to.equal(name);
         });
 
-        // 测试用例，验证合约的symbol函数返回值是否与预期的symbol常量相等
+        // 验证合约的symbol函数返回值是否与预期的symbol常量相等
         it("symbol", async () => {
             expect(await contract.symbol()).to.equal(symbol);
         });
 
-        // 嵌套的描述，用于测试tokenURI函数的行为
+        // tokenURI函数的行为
         describe("tokenURI", async () => {
-            // 测试用例，验证当查询不存在的代币ID的URI时，合约应该抛出一个带有特定错误消息的异常
+            // 验证当查询不存在的代币ID的URI时，合约应该抛出一个带有特定错误消息的异常
             it("URI query for nonexistent token should revert", async () => {
                 const NONE_EXISTENT_TOKEN_ID = 1234
                 await expect(
@@ -144,7 +166,7 @@ describe("BaseERC721", async () => {
                 ).to.be.revertedWith("ERC721Metadata: URI query for nonexistent token");
             });
 
-            // 测试用例，验证当tokenId存在时，tokenURI函数应该返回预期的baseURI
+            // 验证当tokenId存在时，tokenURI函数应该返回预期的baseURI
             it('Should return baseURI when tokenId exists', async function () {
                 const tokenId = 1
                 await contract.connect(owner).mint(randomAddr, tokenId);
@@ -156,11 +178,11 @@ describe("BaseERC721", async () => {
         })
     })
 
-    // 测试套件，用于验证 IERC721 接口的行为
+    // 验证 IERC721 接口的行为
     describe("IERC721", async () => {
-        // 嵌套的测试套件，用于验证 balanceOf 函数的行为
+        // 验证 balanceOf 函数的行为
         describe("balanceOf ", async () => {
-            // 测试用例，用于检查 balanceOf 函数在 mint 之前是否返回 0
+            // 检查 balanceOf 函数在 mint 之前是否返回 0
             it("balanceOf", async () => {
                 // 检查随机地址在 mint 之前的余额是否为 0
                 const beforeBalance = await contract.balanceOf(randomAddr);
@@ -175,9 +197,9 @@ describe("BaseERC721", async () => {
             });
         });
 
-        // 嵌套的测试套件，用于验证 ownerOf 函数的行为
+        // 验证 ownerOf 函数
         describe("ownerOf ", async () => {
-            // 测试用例，用于检查 ownerOf 函数在 mint 之后是否返回正确的持有者地址
+            // 检查 ownerOf 函数在 mint 之后是否返回正确的持有者地址
             it("ownerOf", async () => {
                 const tokenId = 1;
                 const receiver = randomAddr;
@@ -195,9 +217,9 @@ describe("BaseERC721", async () => {
             });
         });
 
-        // 定义一个测试套件，用于测试 approve shou'qu函数的行为
+        // 测试 approve 授权函数
         describe('approve', function () {
-            // 在 approve 测试套件中定义一个测试用例，测试合约的所有者是否能够成功地批准（approve）一个特定的代币（token）给另一个地址
+            // 测试合约的所有者是否能够成功地批准（approve）一个特定的代币（token）给另一个地址
             it('owner should approve successfully', async function () {
                 // mint token first, 铸造一个代币ID为1的代币给合约的所有者地址
                 const tokenId = 1;
