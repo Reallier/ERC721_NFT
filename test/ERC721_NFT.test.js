@@ -1,3 +1,55 @@
+/**
+ * ERC721作为一种非同质化代币（NFT）标准，在数字经济中扮演着重要角色。
+ * 它允许创建独一无二的数字资产，每个代币都具有不可替代的属性和价值。
+ * 这使得ERC721成为数字艺术品、收藏品、游戏内物品和其他虚拟商品的理想选择。
+ * 通过为每个代币分配一个唯一的标识符（tokenId），ERC721确保了其独特性和所有权的透明性。
+ * 此外，ERC721的标准化接口促进了不同应用之间的互操作性，使得数字资产可以跨平台交易和使用。
+ * 随着区块链技术的不断发展，ERC721代币的潜在应用场景预计将进一步扩大，从而增加其价值和重要性。
+ * /
+
+/** 
+ * 本测试旨在验证 BaseERC721 智能合约的各项基础功能是否按预期工作。
+ * 包括但不限于合约的部署、铸造 (Mint)、转账 (Transfer) 以及元数据 (Metadata) 查询等功能。
+ * 同时，测试还将确保合约在遇到非法操作时能够正确地回滚事务并抛出相应的错误信息。
+ */
+
+/**
+ * 测试环境
+ * 开发工具: Hardhat
+ * 测试框架: Mocha
+ * 断言库: Chai
+ * 编程语言: JavaScript / Solidity
+ */
+
+/** 
+ * 初始化:
+ * 函数: init
+ * 描述: 部署 BaseERC721 和 BaseERC721Receiver 合约，并获取它们的地址。
+ * 钩子: beforeEach
+ * 描述: 在每个测试用例执行前调用 init 函数，确保每次测试都在干净的环境中进行。
+ */
+
+/** 
+ * 测试用例
+ * 验证IERC721Metadata接口
+ * - 测试 IERC721Metadata 接口的 name 和 symbol 函数是否返回预期的结果。
+ * - 测试 IERC721Metadata 接口的 tokenURI 函数是否正确处理了不同的 tokenId 和 baseURI。
+ * - 测试 IERC721Metadata 接口的 tokenURI 函数是否正确处理了不存在的 tokenId。
+ * 
+ * - 测试 IERC721Receiver 接口的 onERC721Received 函数是否正确处理了不同的参数。
+ * - 测试 IERC721Receiver 接口的 onERC721Received 函数是否正确处理了无效的调用。
+ * - 测试 IERC721Receiver 接口的 onERC721Received 函数是否正确处理了无效的参数。
+ * 
+ * 
+ * 
+*/
+ 
+
+
+
+
+
+
 // 引入 Chai 断言库，用于编写更清晰的测试用例
 const { expect } = require('chai');
 //  引入 Hardhat 运行环境中的 ethers 模块，用于与智能合约进行交互
@@ -64,7 +116,7 @@ describe("BaseERC721", async () => {
         receivercontractAddr = receivercontract.address;
     }
 
-    // 定义一个 beforeEach 函数，它将在每个测试用例执行之前运行
+    // 定义一个 beforeEach 勾子函数，它将在每个测试用例执行之前运行
     beforeEach(async () => {
         // 调用 init 函数，初始化合约, 部署完成后，返回两个合约的地址。
         await init();
@@ -289,7 +341,7 @@ describe("BaseERC721", async () => {
 
         // 描述：测试 transferFrom 转账函数, 主要看账户及授权相关
         describe('transferFrom', function () {
-            // 测试用例：检查所有者账户的转账是否成功，并且余额是否发生变化
+            // 检查所有者账户的转账是否成功，并且余额是否发生变化
             it('owner account should succeed and balance should change', async function () {
                 // mint token first
                 const tokenId = 1;
@@ -305,7 +357,7 @@ describe("BaseERC721", async () => {
                 ).to.changeTokenBalances(contract, [owner.address, to], [-1, 1]);
             });
 
-            // 测试用例：检查经过授权的账户的转账是否成功，并且余额是否发生变化
+            // 检查经过授权的账户的转账是否成功，并且余额是否发生变化
             it('approved account should succeed and balance should change', async function () {
                 // mint token first
                 const tokenId = 1;
@@ -325,7 +377,7 @@ describe("BaseERC721", async () => {
                 ).to.changeTokenBalances(contract, [owner.address, to], [-1, 1]);
             });
 
-            // 测试用例：检查经过批量授权的账户的转账是否成功，并且余额是否发生变化
+            // 检查经过批量授权的账户的转账是否成功，并且余额是否发生变化
             it('approvedForAll account should succeed and balance should change', async function () {
                 // mint token first
                 const tokenId = 1;
@@ -345,7 +397,7 @@ describe("BaseERC721", async () => {
                 ).to.changeTokenBalances(contract, [owner.address, to], [-1, 1]);
             });
 
-            // 测试用例：检查非所有者且未被授权的账户尝试转账时是否会回滚，并抛出特定的错误信息
+            // 检查非所有者且未被授权的账户尝试转账时是否会回滚，并抛出特定的错误信息
             it('not owner nor approved should revert', async function () {
                 // mint token first
                 const tokenId = 1;
@@ -361,59 +413,12 @@ describe("BaseERC721", async () => {
                 ).to.revertedWith("ERC721: transfer caller is not owner nor approved");
             });
 
-            // 测试用例：检查尝试转账不存在的代币时是否会回滚，并抛出特定的错误信息
+            // 检查尝试转账不存在的代币时是否会回滚，并抛出特定的错误信息
             it('none exists tokenId should revert', async function () {
                 // 生成一个不存在的代币 ID
                 const NONE_EXISTENT_TOKEN_ID = Math.ceil(Math.random() * 1000000);
                 const to = randomAddr;
                  // 期望调用 transferFrom 函数后，交易会回滚并抛出 "ERC721: operator query for nonexistent token" 的错误信息
-                await expect(
-                    contract.connect(owner).transferFrom(owner.address, to, NONE_EXISTENT_TOKEN_ID)
-                ).to.revertedWith("ERC721: operator query for nonexistent token");
-            });
-
-            // 测试用例：检查非所有者且未被授权的账户尝试转账时是否会回滚，并抛出特定的错误信息
-            it('not owner nor approved should revert', async function () {
-                // mint token first
-                const tokenId = 1;
-                await contract.connect(owner).mint(owner.address, tokenId); // mint to self
-
-                const to = randomAddr;
-                const otherAccount = accounts[1]; //not owner or approved
-
-                 // 期望调用 transferFrom 函数后，交易会回滚并抛出 "ERC721: transfer caller is not owner nor approved" 的错误信息
-                await expect(
-                    contract.connect(otherAccount).transferFrom(owner.address, to, tokenId)
-                ).to.revertedWith("ERC721: transfer caller is not owner nor approved");
-            });
-
-            // 测试用例：检查尝试转账不存在的代币时是否会回滚，并抛出特定的错误信息
-            it('none exists tokenId should revert', async function () {
-                const NONE_EXISTENT_TOKEN_ID = Math.ceil(Math.random() * 1000000);
-                const to = randomAddr;
-                await expect(
-                    contract.connect(owner).transferFrom(owner.address, to, NONE_EXISTENT_TOKEN_ID)
-                ).to.revertedWith("ERC721: operator query for nonexistent token");
-            });
-
-            // 测试用例：检查非所有者且未被授权的账户尝试转账时是否会回滚，并抛出特定的错误信息
-            it('not owner nor approved should revert', async function () {
-                // mint token first
-                const tokenId = 1;
-                await contract.connect(owner).mint(owner.address, tokenId); // mint to self
-
-                const to = randomAddr;
-                const otherAccount = accounts[1]; //not owner or approved
-                await expect(
-                    // 期望调用 transferFrom 函数后，交易会回滚并抛出 "ERC721: transfer caller is not owner nor approved" 的错误信息
-                    contract.connect(otherAccount).transferFrom(owner.address, to, tokenId)
-                ).to.revertedWith("ERC721: transfer caller is not owner nor approved");
-            });
-
-            // 测试用例：检查尝试转账不存在的代币时是否会回滚，并抛出特定的错误信息
-            it('none exists tokenId should revert', async function () {
-                const NONE_EXISTENT_TOKEN_ID = Math.ceil(Math.random() * 1000000);
-                const to = randomAddr;
                 await expect(
                     contract.connect(owner).transferFrom(owner.address, to, NONE_EXISTENT_TOKEN_ID)
                 ).to.revertedWith("ERC721: operator query for nonexistent token");
