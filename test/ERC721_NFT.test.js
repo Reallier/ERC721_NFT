@@ -143,7 +143,7 @@ describe("BaseERC721", async () => {
             });
         });
 
-        // 定义一个测试套件，用于测试 approve 函数的行为
+        // 定义一个测试套件，用于测试 approve shou'qu函数的行为
         describe('approve', function () {
             // 在 approve 测试套件中定义一个测试用例，测试合约的所有者是否能够成功地批准（approve）一个特定的代币（token）给另一个地址
             it('owner should approve successfully', async function () {
@@ -213,7 +213,7 @@ describe("BaseERC721", async () => {
             });
         });
 
-        // 定义一个测试套件，用于测试 getApproved 函数的行为
+        // 定义一个测试套件，用于测试 getApproved 查询批准函数的行为
         describe('getApproved', function () {
             // 测试用例：应该返回批准地址
             it('should return approval address', async function () {
@@ -287,20 +287,25 @@ describe("BaseERC721", async () => {
             });
         });
 
+        // 描述：测试 transferFrom 转账函数, 主要看账户及授权相关
         describe('transferFrom', function () {
+            // 测试用例：检查所有者账户的转账是否成功，并且余额是否发生变化
             it('owner account should succeed and balance should change', async function () {
                 // mint token first
                 const tokenId = 1;
                 await contract.connect(owner).mint(owner.address, tokenId); // mint to self
 
+                // 定义一个随机地址，作为接收代币的目标地址
                 const to = randomAddr;
 
                 // balance change
                 await expect(
+                    // 连接到合约的 owner 账户，调用 transferFrom 函数
                     contract.connect(owner).transferFrom(owner.address, to, tokenId)
                 ).to.changeTokenBalances(contract, [owner.address, to], [-1, 1]);
             });
 
+            // 测试用例：检查经过授权的账户的转账是否成功，并且余额是否发生变化
             it('approved account should succeed and balance should change', async function () {
                 // mint token first
                 const tokenId = 1;
@@ -308,16 +313,19 @@ describe("BaseERC721", async () => {
 
                 const to = randomAddr;
 
-                // approve
+                // approve, 进行授权操作
                 const spenderAccout = accounts[1];
+                // 所有者调用合约的 approve 函数，授权 spenderAccout 地址可以转移 tokenId 代币
                 await contract.connect(owner).approve(spenderAccout.address, tokenId)
 
                 // transfer and balance should change
                 await expect(
+                    // 连接到合约的 spenderAccout 账户，调用 transferFrom 函数
                     contract.connect(spenderAccout).transferFrom(owner.address, to, tokenId)
                 ).to.changeTokenBalances(contract, [owner.address, to], [-1, 1]);
             });
 
+            // 测试用例：检查经过批量授权的账户的转账是否成功，并且余额是否发生变化
             it('approvedForAll account should succeed and balance should change', async function () {
                 // mint token first
                 const tokenId = 1;
@@ -327,14 +335,44 @@ describe("BaseERC721", async () => {
 
                 // setApprovalForAll
                 const spenderAccout = accounts[1];
+                // 所有者调用合约的 setApprovalForAll 函数，授权 spenderAccout 地址可以转移所有代币
                 await contract.connect(owner).setApprovalForAll(spenderAccout.address, true)
 
-                // transfer and balance should change
+                // 期望调用 transferFrom 函数后，合约的余额会发生变化 
                 await expect(
+                    // 连接到合约的 spenderAccout 账户，调用 transferFrom 函数
                     contract.connect(spenderAccout).transferFrom(owner.address, to, tokenId)
                 ).to.changeTokenBalances(contract, [owner.address, to], [-1, 1]);
             });
 
+            // 测试用例：检查非所有者且未被授权的账户尝试转账时是否会回滚，并抛出特定的错误信息
+            it('not owner nor approved should revert', async function () {
+                // mint token first
+                const tokenId = 1;
+                await contract.connect(owner).mint(owner.address, tokenId); // mint to self
+
+                const to = randomAddr; // 随机地址
+                const otherAccount = accounts[1]; //not owner or approved
+
+                // 期望调用 transferFrom 函数后，交易会回滚并抛出 "ERC721: transfer caller is not owner nor approved" 的错误信息
+                await expect(
+                    // 连接到合约的 otherAccount 账户，调用 transferFrom 函数
+                    contract.connect(otherAccount).transferFrom(owner.address, to, tokenId)
+                ).to.revertedWith("ERC721: transfer caller is not owner nor approved");
+            });
+
+            // 测试用例：检查尝试转账不存在的代币时是否会回滚，并抛出特定的错误信息
+            it('none exists tokenId should revert', async function () {
+                // 生成一个不存在的代币 ID
+                const NONE_EXISTENT_TOKEN_ID = Math.ceil(Math.random() * 1000000);
+                const to = randomAddr;
+                 // 期望调用 transferFrom 函数后，交易会回滚并抛出 "ERC721: operator query for nonexistent token" 的错误信息
+                await expect(
+                    contract.connect(owner).transferFrom(owner.address, to, NONE_EXISTENT_TOKEN_ID)
+                ).to.revertedWith("ERC721: operator query for nonexistent token");
+            });
+
+            // 测试用例：检查非所有者且未被授权的账户尝试转账时是否会回滚，并抛出特定的错误信息
             it('not owner nor approved should revert', async function () {
                 // mint token first
                 const tokenId = 1;
@@ -342,11 +380,14 @@ describe("BaseERC721", async () => {
 
                 const to = randomAddr;
                 const otherAccount = accounts[1]; //not owner or approved
+
+                 // 期望调用 transferFrom 函数后，交易会回滚并抛出 "ERC721: transfer caller is not owner nor approved" 的错误信息
                 await expect(
                     contract.connect(otherAccount).transferFrom(owner.address, to, tokenId)
                 ).to.revertedWith("ERC721: transfer caller is not owner nor approved");
             });
 
+            // 测试用例：检查尝试转账不存在的代币时是否会回滚，并抛出特定的错误信息
             it('none exists tokenId should revert', async function () {
                 const NONE_EXISTENT_TOKEN_ID = Math.ceil(Math.random() * 1000000);
                 const to = randomAddr;
@@ -355,6 +396,30 @@ describe("BaseERC721", async () => {
                 ).to.revertedWith("ERC721: operator query for nonexistent token");
             });
 
+            // 测试用例：检查非所有者且未被授权的账户尝试转账时是否会回滚，并抛出特定的错误信息
+            it('not owner nor approved should revert', async function () {
+                // mint token first
+                const tokenId = 1;
+                await contract.connect(owner).mint(owner.address, tokenId); // mint to self
+
+                const to = randomAddr;
+                const otherAccount = accounts[1]; //not owner or approved
+                await expect(
+                    // 期望调用 transferFrom 函数后，交易会回滚并抛出 "ERC721: transfer caller is not owner nor approved" 的错误信息
+                    contract.connect(otherAccount).transferFrom(owner.address, to, tokenId)
+                ).to.revertedWith("ERC721: transfer caller is not owner nor approved");
+            });
+
+            // 测试用例：检查尝试转账不存在的代币时是否会回滚，并抛出特定的错误信息
+            it('none exists tokenId should revert', async function () {
+                const NONE_EXISTENT_TOKEN_ID = Math.ceil(Math.random() * 1000000);
+                const to = randomAddr;
+                await expect(
+                    contract.connect(owner).transferFrom(owner.address, to, NONE_EXISTENT_TOKEN_ID)
+                ).to.revertedWith("ERC721: operator query for nonexistent token");
+            });
+
+            // 测试用例：检查尝试转账到零地址时是否会回滚，并抛出特定的错误信息
             it('to zero address should revert', async function () {
                 // mint token first
                 const tokenId = 1;
@@ -366,6 +431,7 @@ describe("BaseERC721", async () => {
                 ).to.revertedWith("ERC721: transfer to the zero address");
             });
 
+            // 测试用例：检查尝试从非所有者账户转账时是否会回滚，并抛出特定的错误信息
             it('from != caller.address should revert', async function () {
                 // mint token first
                 const tokenId = 1;
@@ -378,6 +444,7 @@ describe("BaseERC721", async () => {
                 ).to.revertedWith("ERC721: transfer from incorrect owner");
             });
 
+            // 测试用例：检查当代币被转移时，旧的批准是否会被撤销
             it('should revoke old approval when token transfered', async function () {
                 // mint token first
                 const tokenId = 1;
@@ -387,19 +454,22 @@ describe("BaseERC721", async () => {
 
                 // approve
                 const spender = accounts[1].address;
+                // 连接到合约的 owner 账户，调用 approve 函数，批准 spender 账户花费 tokenId 代币
                 await contract.connect(owner).approve(spender, tokenId);
+                // 检查批准是否成功，期望 getApproved 函数返回的地址等于 spender 地址
                 expect(await contract.getApproved(tokenId)).to.equal(spender); //before
 
-                // transfer
+                // 连接到合约的 owner 账户，调用 transferFrom 函数，将代币从 owner 地址转移到 to 地址
                 await contract.connect(owner).transferFrom(owner.address, to, tokenId);
 
-                // should revoke approval
+                // 检查批准是否被撤销，期望 getApproved 函数返回的地址等于零地址
                 expect(await contract.getApproved(tokenId)).to.equal(ZeroAddress); // after
             });
         });
 
+        // 描述：测试 safeTransferFrom 安全转账函数的行为, 和transferFrom大致一致, 多了检查地址是否支持ERC721标准
         describe('safeTransferFrom', function () {
-            // same as transferFrom
+            // same as transferFrom, 测试用例：所有者应该成功转移代币并且余额应该改变
             it('owner should succeed and balance should change', async function () {
                 // mint token first
                 const tokenId = 1;
@@ -413,7 +483,7 @@ describe("BaseERC721", async () => {
                 ).to.changeTokenBalances(contract, [owner.address, to], [-1, 1]);
             });
 
-            // same as transferFrom
+            // same as transferFrom, 测试用例：被批准的账户应该成功转移代币并且余额应该改变
             it('approved should succeed and balance should change', async function () {
                 // mint token first
                 const tokenId = 1;
@@ -431,7 +501,7 @@ describe("BaseERC721", async () => {
                 ).to.changeTokenBalances(contract, [owner.address, to], [-1, 1]);
             });
 
-            // same as transferFrom
+            // same as transferFrom, 测试用例：非所有者且未被批准的账户应该转移失败并回滚
             it('not owner nor approved should revert', async function () {
                 // mint token first
                 const tokenId = 1;
@@ -444,6 +514,7 @@ describe("BaseERC721", async () => {
                 ).to.revertedWith("ERC721: transfer caller is not owner nor approved");
             });
 
+            // 测试用例：转移到不支持 ERC721Receiver 的合约应该回滚
             it('transfer to none ERC721Receiver implementer should revert', async function () {
                 // mint token first
                 const tokenId = 1;
@@ -455,6 +526,7 @@ describe("BaseERC721", async () => {
                 ).to.revertedWith("ERC721: transfer to non ERC721Receiver implementer");
             });
 
+            // 测试用例：转移到支持 ERC721Receiver 的合约应该成功
             it('transfer to ERC721Receiver implementer should succeed', async function () {
                 // mint token first
                 const tokenId = 1;
@@ -468,15 +540,19 @@ describe("BaseERC721", async () => {
         });
     })
 
+    // 铸币函数测试
     describe("mint", async () => {
+        // 测试用例：mint 成功应该更新余额
         it('mint succeed should update balance', async function () {
             const tokenId = 1;
 
+            // 期望调用 mint 函数后，交易会改变代币余额
             await expect(
                 contract.connect(owner).mint(randomAddr, tokenId)
             ).to.changeTokenBalance(contract, randomAddr, 1);
         });
 
+        // 测试用例：mint 到零地址应该回滚
         it("mint to the zero address should revert", async () => {
             const tokenId = 1;
 
@@ -485,6 +561,7 @@ describe("BaseERC721", async () => {
             ).to.be.revertedWith("ERC721: mint to the zero address");
         });
 
+        // 测试用例：mint 重复的 tokenId 应该回滚
         it("mint repeated tokenId should revert", async () => {
             const tokenId = 1;
 
