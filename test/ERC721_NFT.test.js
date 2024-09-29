@@ -81,7 +81,7 @@ const { ethers } = require('hardhat');
  * 测试套件用于测试 BaseERC721 智能合约
  * 该套件将初始化合约，并测试其基本功能，如部署、Mint和 Transfer
  */
-describe("BaseERC721", async () => {
+describe("BaseERC721", function () {
     // 声明合约和合约地址变量
     let contract, contractAddr;
     // 声明接收者合约和合约地址变量
@@ -100,7 +100,8 @@ describe("BaseERC721", async () => {
     // 获取随机账户的地址
     const randomAddr = randomAccount.address;
     // 定义以太坊的零地址常量
-    const ZeroAddress = ethers.constants.AddressZero;
+    const ZeroAddress = ethers.ZeroAddress
+    // const ZeroAddress = ethers.constants.AddressZero;
 
     /**
      * 初始化函数，部署合约并返回合约地址。
@@ -112,6 +113,7 @@ describe("BaseERC721", async () => {
      */
     async function init() {
         // 部署 BaseERC721, 获取测试网络上的所有账户
+        // accounts = await ethers.getSigners();
         accounts = await ethers.getSigners();
         // 获取第一个账户作为部署合约的账户
         owner = accounts[0];
@@ -121,7 +123,8 @@ describe("BaseERC721", async () => {
             // 使用工厂合约部署新的 BaseERC721 合约，并传递必要的参数
             contract = await factory.deploy(...[name, symbol, baseURI]);
             // 等待合约部署完成
-            await contract.deployed();
+            // await contract.deployed();
+            await contract.waitForDeployment();
         }
 
         {
@@ -129,13 +132,16 @@ describe("BaseERC721", async () => {
             // 使用工厂合约部署新的 BaseERC721 合约，并传递必要的参数
             receivercontract = await factory.deploy();
             // 等待合约部署完成
-            await receivercontract.deployed();
+            await receivercontract.waitForDeployment();
         }
 
         // 获取部署的 BaseERC721 合约的地址
-        contractAddr = contract.address;
+        // contractAddr = contract.address;
+        contractAddr = await contract.getAddress();
         // 获取部署的 BaseERC721Receiver 合约的地址
-        receivercontractAddr = receivercontract.address;
+        // receivercontractAddr = receivercontract.address;
+        receivercontractAddr = await receivercontract.getAddress();
+
     }
 
     // 定义一个 beforeEach 勾子函数，它将在每个测试用例执行之前运行
@@ -172,7 +178,7 @@ describe("BaseERC721", async () => {
                 await contract.connect(owner).mint(randomAddr, tokenId);
 
                 // const expectURI = baseURI + String(tokenId);
-                const expectURI = baseURI;
+                const expectURI = baseURI + String(tokenId)
                 expect(await contract.tokenURI(tokenId)).to.equal(expectURI);
             });
         })
@@ -203,10 +209,11 @@ describe("BaseERC721", async () => {
             it("ownerOf", async () => {
                 const tokenId = 1;
                 const receiver = randomAddr;
-                
-                // 检查mint之前，tokenId的持有者是否为零地址
-                const beforeBalance = await contract.ownerOf(tokenId);
-                expect(beforeBalance).to.equal(ZeroAddress);
+
+                // 检查mint之前，ownerOf应该抛出异常，因为tokenId还不存在
+                await expect(
+                    contract.ownerOf(tokenId)
+                ).to.be.revertedWith("ERC721: owner query for nonexistent token");
 
                 // 调用mint函数，将tokenId 1铸造给接收者地址
                 await contract.connect(owner).mint(receiver, 1);

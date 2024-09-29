@@ -7,7 +7,9 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 contract BaseERC721 {
+    // 令所有 uint256 类型的变量都可以直接调用 'Strings' 库方法
     using Strings for uint256;
+    // 所有的 address 类型变量都可以使用 'Address' 库方法
     using Address for address;
 
     // Token name
@@ -32,7 +34,7 @@ contract BaseERC721 {
     mapping(address => mapping(address => bool)) private _operatorApprovals;
 
     /**
-     * @dev Emitted when `tokenId` token is transferred from `from` to `to`.
+     * @dev 当 `tokenId` 代币从 `from` 转移到 `to` 时触发。
      */
     event Transfer(
         address indexed from,
@@ -41,7 +43,7 @@ contract BaseERC721 {
     );
 
     /**
-     * @dev Emitted when `owner` enables `approved` to manage the `tokenId` token.
+     * @dev 当 `owner` 授权 `approved` 管理 `tokenId` 代币时触发。
      */
     event Approval(
         address indexed owner,
@@ -50,7 +52,7 @@ contract BaseERC721 {
     );
 
     /**
-     * @dev Emitted when `owner` enables or disables (`approved`) `operator` to manage all of its assets.
+     * @dev 当 `owner` 授权或取消授权 `operator` 管理其所有资产时触发。
      */
     event ApprovalForAll(
         address indexed owner,
@@ -59,14 +61,13 @@ contract BaseERC721 {
     );
 
     /**
-     * @dev Initializes the contract by setting a `name`, a `symbol` and a `baseURI` to the token collection.
+     * @dev 初始化合约，设置代币集合的 `name`、`symbol` 和 `baseURI`。
      */
     constructor(
         string memory name_,
         string memory symbol_,
         string memory baseURI_
     ) {
-        /**code*/
         // 初始化合约的名称。
         _name = name_;
 
@@ -75,11 +76,12 @@ contract BaseERC721 {
 
         // 初始化基础URI。
         _baseURI = baseURI_;
-
     }
 
     /**
-     * @dev See {IERC165-supportsInterface}.
+     * @dev 实现 IERC165 接口的 `supportsInterface` 方法，用于判断合约是否支持给定的接口。
+     * @param interfaceId 要查询的接口ID。
+     * @return 如果合约支持指定的接口，则返回 true；否则返回 false。
      */
     function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
         return
@@ -87,92 +89,113 @@ contract BaseERC721 {
             interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
             interfaceId == 0x5b5e139f;   // ERC165 Interface ID for ERC721Metadata
     }
-    
+
     /**
-     * @dev See {IERC721Metadata-name}.
+     * @dev 返回 NFT 集合的名称。
+     * 这个函数实现了 IERC721Metadata 接口中的 `name` 方法。
+     * @return 返回一个表示 NFT 集合名称的字符串。
      */
     function name() public view returns (string memory) {
-        /**code*/
         return _name;
-
     }
 
     /**
-     * @dev See {IERC721Metadata-symbol}.
+     * @dev 返回 NFT 集合的符号（Symbol）。
+     * 这个函数实现了 IERC721Metadata 接口中的 `symbol` 方法。
+     * @return 返回一个表示 NFT 集合符号的字符串。
      */
     function symbol() public view returns (string memory) {
-        /**code*/
         return _symbol;
-        
     }
 
     /**
-     * @dev See {IERC721Metadata-tokenURI}.
+     * @dev 返回指定 NFT 的元数据 URI。
+     * 这个函数实现了 IERC721Metadata 接口中的 `tokenURI` 方法。
+     * 元数据 URI 通常指向一个 JSON 文件，其中包含 NFT 的详细信息，如名称、描述和图像等。
+     * @param tokenId 要查询的 NFT 的唯一标识符。
+     * @return 返回一个表示 NFT 元数据 URI 的字符串。
      */
     function tokenURI(uint256 tokenId) public view returns (string memory) {
         require(
-            /**code*/
             _exists(tokenId),
             "ERC721Metadata: URI query for nonexistent token"
         );
-
         // should return baseURI
-        /**code*/
+        return string(abi.encodePacked(_baseURI, tokenId.toString()));
     }
 
+    /**
+     * @dev 铸造一个新的 NFT 并将其所有权分配给指定地址。
+     * 这是一个内部函数，通常由合约的其他部分调用以创建新的 NFT。
+     * @param to 接收新铸造 NFT 的地址。
+     * @param tokenId 新铸造 NFT 的唯一标识符。
+     */
     function _mint(address to, uint256 tokenId) internal {
         _owners[tokenId] = to;
         emit Transfer(address(0), to, tokenId);
     }
 
     /**
-     * @dev Mints `tokenId` and transfers it to `to`.
+     * @dev 铸造 `tokenId` 并将其转让给 `to`。
      *
+     * 要求：
      *
-     * Requirements:
+     * - `to` 不能是零地址。
+     * - `tokenId` 必须不存在。
      *
-     * - `to` cannot be the zero address.
-     * - `tokenId` must not exist.
-     *
-     * Emits a {Transfer} event.
+     * 触发一个 {Transfer} 事件。
      */
     function mint(address to, uint256 tokenId) public {
-        require(/**code*/to != address(0), "ERC721: mint to the zero address");
-        require(/**code*/!_exists(tokenId), "ERC721: token already minted");
+        require(to != address(0), "ERC721: mint to the zero address");
+        require(!_exists(tokenId), "ERC721: token already minted");
 
-        /**code*/
+        // 更新接收地址的余额
+        _balances[to] += 1;
+
+        // 调用内部函数 _mint 完成代币的所有权分配
         _mint(to, tokenId);
 
         emit Transfer(address(0), to, tokenId);
     }
 
     /**
-     * @dev See {IERC721-balanceOf}.
+     * @dev 返回指定地址拥有的 NFT 数量。
+     * 这个函数实现了 IERC721 接口中的 `balanceOf` 方法。
+     * @param owner 要查询的地址。
+     * @return 返回指定地址拥有的 NFT 数量。
      */
     function balanceOf(address owner) public view returns (uint256) {
-        /**code*/
-        owner != address(0);
+        // 确保传入的地址不是零地址
+        require(owner != address(0), "Invalid zero address");
+
+        // 返回指定地址的代币余额
+        return _balances[owner];
     }
 
     /**
-     * @dev See {IERC721-ownerOf}.
+     * @dev 返回指定 NFT 的所有者地址。
+     * 这个函数实现了 IERC721 接口中的 `ownerOf` 方法。
+     * @param tokenId 要查询的 NFT 的唯一标识符。
+     * @return 返回指定 NFT 的所有者地址。
      */
     function ownerOf(uint256 tokenId) public view returns (address) {
-        /**code*/
         address owner = _owners[tokenId];
         require(owner != address(0), "ERC721: owner query for nonexistent token");
         return owner;
     }
 
     /**
-     * @dev See {IERC721-approve}.
+     * @dev 允许指定地址操作指定的 NFT。
+     * 这个函数实现了 IERC721 接口中的 `approve` 方法。
+     * @param to 被授权操作 NFT 的地址。
+     * @param tokenId 要授权的 NFT 的唯一标识符。
      */
     function approve(address to, uint256 tokenId) public {
         address owner = ownerOf(tokenId);
-        require(/**code*/to != owner, "ERC721: approval to current owner");
+        require(to != owner, "ERC721: approval to current owner");
 
         require(
-            /**code*/msg.sender == owner || isApprovedForAll(owner, msg.sender),
+            msg.sender == owner || isApprovedForAll(owner, msg.sender),
             "ERC721: approve caller is not owner nor approved for all"
         );
 
@@ -180,57 +203,69 @@ contract BaseERC721 {
     }
 
     /**
-     * @dev See {IERC721-getApproved}.
+     * @dev 返回指定 NFT 当前被批准的操作地址。
+     * 这个函数实现了 IERC721 接口中的 `getApproved` 方法。
+     * @param tokenId 要查询的 NFT 的唯一标识符。
+     * @return 返回指定 NFT 当前被批准的操作地址。
      */
     function getApproved(uint256 tokenId) public view returns (address) {
         require(
-            /**code*/
             _exists(tokenId),
             "ERC721: approved query for nonexistent token"
         );
-
-        /**code*/
         return _tokenApprovals[tokenId];
     }
 
     /**
-     * @dev See {IERC721-setApprovalForAll}.
+     * @dev 设置一个操作员（operator）对所有 NFT 的全局批准。
+     * 这个函数实现了 IERC721 接口中的 `setApprovalForAll` 方法。
+     * @param operator 被授权操作所有 NFT 的地址。
+     * @param approved 是否批准操作员操作所有 NFT。
      */
     function setApprovalForAll(address operator, bool approved) public {
         address sender = msg.sender;
-        require(/**code*/operator != sender, "ERC721: approve to caller");
-        
-        /**code*/
+        require(operator != sender, "ERC721: approve to caller");
+
         _operatorApprovals[sender][operator] = approved;
 
         emit ApprovalForAll(sender, operator, approved);
     }
 
     /**
-     * @dev See {IERC721-isApprovedForAll}.
+     * @dev 检查一个操作员是否被批准操作所有 NFT。
+     * 这个函数实现了 IERC721 接口中的 `isApprovedForAll` 方法。
+     * @param owner NFT 所有者的地址。
+     * @param operator 被检查的操作员地址。
+     * @return 如果操作员被批准操作所有 NFT，则返回 true；否则返回 false。
      */
     function isApprovedForAll(
         address owner,
         address operator
     ) public view returns (bool) {
-        /**code*/
         return _operatorApprovals[owner][operator];
     }
 
     /**
-     * @dev See {IERC721-transferFrom}.
+     * @dev 从一个地址转移到另一个地址，要求调用者是所有者或已被批准。
+     * 这个函数实现了 IERC721 接口中的 `transferFrom` 方法。
+     * @param from 当前持有 NFT 的地址。
+     * @param to 接收 NFT 的地址。
+     * @param tokenId 要转移的 NFT 的唯一标识符。
      */
     function transferFrom(address from, address to, uint256 tokenId) public {
         require(
             _isApprovedOrOwner(msg.sender, tokenId),
             "ERC721: transfer caller is not owner nor approved"
         );
-
         _transfer(from, to, tokenId);
     }
 
     /**
-     * @dev See {IERC721-safeTransferFrom}.
+     * @dev 安全地从一个地址转移到另一个地址，要求调用者是所有者或已被批准。
+     * 这个函数实现了 IERC721 接口中的 `safeTransferFrom` 方法，但不传递额外数据。
+     * @param from 当前持有 NFT 的地址。
+     * @param to 接收 NFT 的地址。
+     * @param tokenId 要转移的 NFT 的唯一标识符。
      */
     function safeTransferFrom(
         address from,
@@ -241,7 +276,12 @@ contract BaseERC721 {
     }
 
     /**
-     * @dev See {IERC721-safeTransferFrom}.
+     * @dev 安全地从一个地址转移到另一个地址，并传递额外的数据，要求调用者是所有者或已被批准。
+     * 这个函数实现了 IERC721 接口中的 `safeTransferFrom` 方法。
+     * @param from 当前持有 NFT 的地址。
+     * @param to 接收 NFT 的地址。
+     * @param tokenId 要转移的 NFT 的唯一标识符。
+     * @param _data 附加数据，可以用于接收方的处理。
      */
     function safeTransferFrom(
         address from,
@@ -257,22 +297,20 @@ contract BaseERC721 {
     }
 
     /**
-     * @dev Safely transfers `tokenId` token from `from` to `to`, checking first that contract recipients
-     * are aware of the ERC721 protocol to prevent tokens from being forever locked.
+     * @dev 安全地将 `tokenId` 代币从 `from` 转移到 `to`，首先检查接收方合约是否了解 ERC721 协议，以防止代币被永久锁定。
      *
-     * `_data` is additional data, it has no specified format and it is sent in call to `to`.
+     * `_data` 是附加数据，没有指定格式，并且会在调用 `to` 时发送。
      *
-     * This internal function is equivalent to {safeTransferFrom}, and can be used to e.g.
-     * implement alternative mechanisms to perform token transfer, such as signature-based.
+     * 这个内部函数相当于 {safeTransferFrom}，可以用于实现替代机制，例如基于签名的代币转账。
      *
-     * Requirements:
+     * 要求：
      *
-     * - `from` cannot be the zero address.
-     * - `to` cannot be the zero address.
-     * - `tokenId` token must exist and be owned by `from`.
-     * - If `to` refers to a smart contract, it must implement {IERC721Receiver-onERC721Received}, which is called upon a safe transfer.
+     * - `from` 不能是零地址。
+     * - `to` 不能是零地址。
+     * - `tokenId` 代币必须存在并且由 `from` 拥有。
+     * - 如果 `to` 是智能合约，则必须实现 {IERC721Receiver-onERC721Received}，在安全转账时会被调用。
      *
-     * Emits a {Transfer} event.
+     * 触发一个 {Transfer} 事件。
      */
     function _safeTransfer(
         address from,
@@ -288,12 +326,11 @@ contract BaseERC721 {
     }
 
     /**
-     * @dev Returns whether `tokenId` exists.
+     * @dev 返回 `tokenId` 是否存在。
      *
-     * Tokens can be managed by their owner or approved accounts via {approve} or {setApprovalForAll}.
+     * 代币可以由其所有者或通过 {approve} 或 {setApprovalForAll} 批准的账户进行管理。
      *
-     * Tokens start existing when they are minted (`_mint`),
-     * and stop existing when they are burned (`_burn`).
+     * 代币在被铸造 (`_mint`) 时开始存在，并在被销毁 (`_burn`) 时停止存在。
      */
     function _exists(uint256 tokenId) internal view returns (bool) {
         /**code*/
@@ -301,23 +338,20 @@ contract BaseERC721 {
     }
 
     /**
-     * @dev Returns whether `spender` is allowed to manage `tokenId`.
+     * @dev 返回 `spender` 是否被允许管理 `tokenId`。
      *
-     * Requirements:
+     * 要求：
      *
-     * - `tokenId` must exist.
+     * - `tokenId` 必须存在。
      */
     function _isApprovedOrOwner(
         address spender,
         uint256 tokenId
     ) internal view returns (bool) {
         require(
-            /**code*/
             _owners[tokenId] != address(0),
             "ERC721: operator query for nonexistent token"
         );
-
-        /**code*/
         address owner = _owners[tokenId];
 
         // 检查spender是否是：
@@ -332,26 +366,27 @@ contract BaseERC721 {
     }
 
     /**
-     * @dev Transfers `tokenId` from `from` to `to`.
-     *  As opposed to {transferFrom}, this imposes no restrictions on msg.sender.
+     * @dev 将 `tokenId` 从 `from` 转移到 `to`。
+     * 与 {transferFrom} 不同，此函数不对 `msg.sender` 施加任何限制。
      *
-     * Requirements:
+     * 要求：
      *
-     * - `to` cannot be the zero address.
-     * - `tokenId` token must be owned by `from`.
+     * - `to` 不能是零地址。
+     * - `tokenId` 代币必须由 `from` 拥有。
      *
-     * Emits a {Transfer} event.
+     * 触发一个 {Transfer} 事件。
      */
     function _transfer(address from, address to, uint256 tokenId) internal {
         require(
-           /**code*/
            _owners[tokenId] == from,
             "ERC721: transfer from incorrect owner"
         );
 
-        require(/**code*/to != address(0), "ERC721: transfer to the zero address");
+        require(to != address(0), "ERC721: transfer to the zero address");
 
-        /**code*/
+        // 清除旧的批准信息
+        _approve(address(0), tokenId);
+
         // 更新代币的所有权。
         _owners[tokenId] = to;
 
@@ -365,26 +400,33 @@ contract BaseERC721 {
     }
 
     /**
-     * @dev Approve `to` to operate on `tokenId`
+     * @dev 授权 `to` 操作 `tokenId`。
      *
-     * Emits a {Approval} event.
+     * 触发一个 {Approval} 事件。
      */
     function _approve(address to, uint256 tokenId) internal virtual {
-        /**code*/
         _tokenApprovals[tokenId] = to;
-
         emit Approval(ownerOf(tokenId), to, tokenId);
     }
 
+    // Helper function to check if an address is a contract
+    function _isContract(address account) internal view returns (bool) {
+        uint256 size;
+        assembly {
+            size := extcodesize(account)
+        }
+        return size > 0;
+    }
+
     /**
-     * @dev Internal function to invoke {IERC721Receiver-onERC721Received} on a target address.
-     * The call is not executed if the target address is not a contract.
+     * @dev 内部函数，用于在目标地址上调用 {IERC721Receiver-onERC721Received}。
+     * 如果目标地址不是合约，则不会执行调用。
      *
-     * @param from address representing the previous owner of the given token ID
-     * @param to target address that will receive the tokens
-     * @param tokenId uint256 ID of the token to be transferred
-     * @param _data bytes optional data to send along with the call
-     * @return bool whether the call correctly returned the expected magic value
+     * @param from 表示给定代币 ID 的前所有者的地址
+     * @param to 将接收代币的目标地址
+     * @param tokenId 要转移的代币的 ID
+     * @param _data 可选的附加数据，随调用一起发送
+     * @return bool 调用是否正确返回了预期的魔法值
      */
     function _checkOnERC721Received(
         address from,
@@ -392,7 +434,7 @@ contract BaseERC721 {
         uint256 tokenId,
         bytes memory _data
     ) private returns (bool) {
-        if (to.isContract()) {
+        if (_isContract(to)) {
             try
                 IERC721Receiver(to).onERC721Received(
                     msg.sender,

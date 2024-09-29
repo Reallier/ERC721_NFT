@@ -1,0 +1,30 @@
+{
+  "name": "erc721_nft",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "hardhat test test/ERC721_NFT.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "chai": "4",
+    "ethers": "^6.13.2",
+    "hardhat": "^2.22.12",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "@ethersproject/signing-key": "^5.7.0",
+    "@openzeppelin/contracts": "^5.0.2",
+    "elliptic": "^6.5.7",
+    "glob": "^11.0.0"
+  }
+}
